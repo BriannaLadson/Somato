@@ -1,18 +1,27 @@
 # Somato
 
-Somato is a lightweight procedural body generation library for games and simulations.
+Somato is a lightweight procedural body generation and rendering library for games and simulations.
 
-It provides simple geometry-based building blocks for generating and rendering body features. Somato is designed to be driven by external systems, such as procedural generation, simulation logic, or genetics libraries.
+It provides geometry-based building blocks for creating configurable body features from data.
+
+Somato is designed to work with externally supplied parameters, making it suitable for:
+
+- Procedural character generation
+- Character customization
+- Species and race definitions
+- Simulation systems
+- Randomized appearances
+- Data-driven character creation
 
 Version `0.1.0` currently focuses on procedural eyes.
 
 ## Example Outputs
+
 <img width="400" height="300" alt="child_eye" src="https://github.com/user-attachments/assets/865650e4-53c0-4693-9e7d-b3db8bd24835" />
 
 <img width="400" height="300" alt="parent_1_eye" src="https://github.com/user-attachments/assets/0baf02df-9089-4d8a-8bb9-2804a3af74ff" />
 
 <img width="400" height="300" alt="parent_2_eye" src="https://github.com/user-attachments/assets/25a0c958-fa97-4a5a-83b3-d7f2bfd7ea85" />
-
 
 ## Features
 
@@ -26,6 +35,7 @@ Version `0.1.0` currently focuses on procedural eyes.
 - Custom sclera and outline colors
 - Simple render pipeline
 - Pillow-based image output
+- Data-driven feature generation
 
 ## Installation
 
@@ -44,6 +54,8 @@ Pillow
 ```
 
 ## Basic Usage
+
+Import the main Somato classes:
 
 ```python
 from somato import Somato, Eye, Iris
@@ -168,7 +180,7 @@ p3
 
 Both curves share the same starting and ending points.
 
-The resulting curves are combined into a closed polygon that is filled with the sclera color.
+The two curves are combined into a closed shape that is filled with the sclera color.
 
 ### Endpoints
 
@@ -183,9 +195,11 @@ p0=(50, 150)
 p3=(350, 150)
 ```
 
+These points determine the overall horizontal span of the eye.
+
 ### Control Points
 
-The control points determine the curvature of the eye.
+The control points determine the curvature of the upper and lower eyelids.
 
 ```python
 upper_p1=(120, 70)
@@ -195,15 +209,15 @@ lower_p1=(120, 230)
 lower_p2=(280, 230)
 ```
 
-Moving these points changes the shape of the upper and lower eyelids.
+Moving these points changes the resulting eye shape.
 
-Because the geometry is directly controllable, eye shapes can be created manually or generated procedurally.
+Because the geometry is directly configurable, eye shapes can be created manually or generated from external data.
 
 ## Cubic Bézier Curves
 
 Somato uses cubic Bézier curves internally.
 
-The curve is calculated from four points:
+A cubic Bézier curve is calculated from four points:
 
 ```text
 P0
@@ -212,14 +226,14 @@ P2
 P3
 ```
 
-where:
+Where:
 
 ```text
 P0 and P3 = endpoints
 P1 and P2 = control points
 ```
 
-Somato samples points along the curve and uses those points to construct the eye shape.
+Somato samples points along each curve and uses those points to construct the final eye shape.
 
 You normally do not need to call the Bézier function directly when creating an eye.
 
@@ -236,15 +250,15 @@ iris = Iris(
 )
 ```
 
-### center
+### `center`
 
-The center of the iris:
+The center position of the iris:
 
 ```python
 center=(200, 150)
 ```
 
-### radius_x
+### `radius_x`
 
 The horizontal radius:
 
@@ -252,7 +266,7 @@ The horizontal radius:
 radius_x=35
 ```
 
-### radius_y
+### `radius_y`
 
 The vertical radius:
 
@@ -273,7 +287,7 @@ Iris(
 
 creates a circular iris.
 
-Different horizontal and vertical radii can create an elliptical iris.
+Different horizontal and vertical radii can create an elliptical iris:
 
 ```python
 Iris(
@@ -283,7 +297,7 @@ Iris(
 )
 ```
 
-### color
+### `color`
 
 The iris color can use any color format supported by Pillow.
 
@@ -339,7 +353,7 @@ eye = Eye(
 
 ## Transformations
 
-Eyes can also be transformed without manually editing every Bézier point.
+Eyes can be transformed without manually editing every Bézier point.
 
 Somato currently supports:
 
@@ -410,13 +424,15 @@ Transformations are applied around the center point between `p0` and `p3`.
 
 Somato stores renderable body parts in a list.
 
+Add a body part with:
+
 ```python
 somato.add(
 	body_part
 )
 ```
 
-When `render()` is called, every body part is drawn in the order it was added.
+When `render()` is called, each body part is drawn in the order it was added.
 
 ```python
 somato.render()
@@ -432,9 +448,11 @@ somato.save(
 
 automatically renders the body parts before saving the image.
 
-## Procedural Generation
+## Data-Driven Generation
 
-Somato is designed so that geometry can come from another system.
+Somato does not determine how appearance values are created.
+
+Instead, it accepts geometry and appearance data supplied by another part of the application.
 
 For example:
 
@@ -445,13 +463,21 @@ eye_data = {
 	"upper_p2": (280, 75),
 	"p3": (350, 140),
 	"lower_p1": (120, 205),
-	"lower_p2": (280, 190)
+	"lower_p2": (280, 190),
+	"iris_color": (80, 130, 75)
 }
 ```
 
-That data can be passed directly into an eye:
+That data can then be used to construct an eye:
 
 ```python
+iris = Iris(
+	center=(200, 150),
+	radius_x=35,
+	color=eye_data["iris_color"]
+)
+
+
 eye = Eye(
 	p0=eye_data["p0"],
 	upper_p1=eye_data["upper_p1"],
@@ -459,53 +485,23 @@ eye = Eye(
 	p3=eye_data["p3"],
 	lower_p1=eye_data["lower_p1"],
 	lower_p2=eye_data["lower_p2"],
-	thickness=5
-)
-```
-
-This makes Somato suitable for systems where appearance data is generated rather than manually authored.
-
-## Using Somato With Genetics
-
-Somato does not contain genetics logic.
-
-A genetics system can generate phenotype values such as:
-
-```python
-phenotype = {
-	"p0": (50, 150),
-	"upper_p1": (120, 90),
-	"upper_p2": (280, 80),
-	"p3": (350, 145),
-	"lower_p1": (120, 210),
-	"lower_p2": (280, 200),
-	"iris_color": (80, 130, 75)
-}
-```
-
-Somato can then render those values:
-
-```python
-iris = Iris(
-	center=(200, 150),
-	radius_x=35,
-	color=phenotype["iris_color"]
-)
-
-
-eye = Eye(
-	p0=phenotype["p0"],
-	upper_p1=phenotype["upper_p1"],
-	upper_p2=phenotype["upper_p2"],
-	p3=phenotype["p3"],
-	lower_p1=phenotype["lower_p1"],
-	lower_p2=phenotype["lower_p2"],
 	thickness=5,
 	iris=iris
 )
 ```
 
-This keeps appearance rendering separate from the system responsible for generating the traits.
+The data could come from any external system, including:
+
+- Procedural generation
+- Character creation
+- Species templates
+- Random generation
+- Simulation rules
+- Saved character data
+- Configuration files
+- External libraries
+
+Somato is responsible only for turning those values into rendered body features.
 
 ## Coordinate System
 
@@ -545,15 +541,15 @@ somato = Somato(
 )
 ```
 
-### width
+### `width`
 
 Image width in pixels.
 
-### height
+### `height`
 
 Image height in pixels.
 
-### background_color
+### `background_color`
 
 Background color used when creating the image.
 
@@ -561,7 +557,7 @@ Somato creates an RGBA image internally.
 
 ## API Overview
 
-### Somato
+### `Somato`
 
 ```python
 Somato(
@@ -579,7 +575,7 @@ render()
 save(file_name)
 ```
 
-### Eye
+### `Eye`
 
 ```python
 Eye(
@@ -608,7 +604,7 @@ get_shape()
 draw(image)
 ```
 
-### Iris
+### `Iris`
 
 ```python
 Iris(
@@ -627,23 +623,24 @@ bounds()
 
 ## Design Philosophy
 
-Somato handles geometry and rendering.
+Somato separates appearance rendering from appearance generation.
 
-It is not intended to determine why a body feature has a particular shape.
+The library does not decide why a character has a particular body feature.
 
-For example, Somato does not need to know whether an eye shape came from:
+It simply receives geometry and appearance values and renders them.
 
-- Genetics
-- Species definitions
-- Character customization
+For example, an eye shape could come from:
+
+- A procedural generator
+- A character creator
+- A species definition
+- A simulation
 - Random generation
-- Aging
-- Injury
-- Simulation rules
+- A saved character profile
 
-It simply receives geometry and renders it.
+Somato remains independent of the system that produced those values.
 
-This separation allows Somato to work alongside other procedural systems without depending on them.
+This makes it possible to use the same rendering system with many different character-generation approaches.
 
 ## Current Limitations
 
@@ -653,8 +650,8 @@ Currently:
 
 - Eyes are the only implemented body feature
 - Pupils are not yet implemented
-- The library does not contain anatomical or biological logic
-- Procedural data must currently be supplied by the application using Somato
+- Procedural parameters must be supplied by the application
+- Somato does not include character-generation or simulation logic
 
 Additional body features may be added in future versions.
 
